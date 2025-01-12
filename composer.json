@@ -1,0 +1,15 @@
+{
+  "name": "mini4work/lib-io",
+  "description": "Package for FFI IO cross-platform calls. Can be used for mouse and keyboard manipulation.",
+  "minimum-stability": "stable",
+  "license": "MIT",
+  "require": {
+    "php": "^8.3",
+    "ext-ffi": "*"
+  },
+  "autoload": {
+    "psr-4": {
+      "M4W\\LibIO\\": "src/"
+    }
+  }
+}
