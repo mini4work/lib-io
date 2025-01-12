@@ -36,18 +36,28 @@ composer require mini4work/lib-io
 ## Features
 
 ### Mouse Control
-| **OS**      | **Move** | **Click** | **GetPosition** |
-|-------------|----------|-----------|-----------------|
-| macOS       | ✅        | ✅         | ✅               |
-| Linux       | In progress | In progress | In progress   |
-| Windows     | ✅        | ✅         | ✅               |
+| **OS**          | **Move** | **Click** | **GetPosition** |
+|-----------------|----------|-----------|-----------------|
+| macOS           | ✅        | ✅         | ✅               |
+| Linux (X11)     | ⚠️       | ⚠️        | ⚠️              |
+| Linux (WayLand) | ⏳        | ⏳         | ⏳               |
+| Windows         | ✅        | ✅         | ✅               |
 
 ### Keyboard Control
-| **OS**      | **DownKey** | **UpKey** | **PressKey** | **IsKeyPressed** |
-|-------------|-------------|-----------|--------------|------------------|
-| macOS       | ✅           | ✅         | ✅            | ✅                |
-| Linux       | In progress  | In progress| In progress  | In progress      |
-| Windows     | ✅           | ✅         | ✅            | ✅                |
+| **OS**          | **DownKey** | **UpKey** | **PressKey** | **IsKeyPressed** |
+|-----------------|-------------|-----------|--------------|------------------|
+| macOS           | ✅           | ✅         | ✅            | ✅                |
+| Linux (X11)     | ⚠️          | ⚠️        | ⚠️           | ⚠️               |
+| Linux (WayLand) | ⏳️          | ⏳         | ⏳️           | ⏳                |
+| Windows         | ✅           | ✅         | ✅            | ✅                |
+
+
+#### Legend
+| **Symbol** | 	**Meaning**                                                                                                                                  |
+|------------|-----------------------------------------------------------------------------------------------------------------------------------------------|
+| ✅          | 	**Works and tested on real device** — The functionality works and has been tested on real devices (may still contain bugs on other devices). |
+| ⚠️         | 	**Not tested** — Functionality is untested (consider it as *not supported*, but feel free to try it).                                        |
+| ⏳          | 	**In progress** — Functionality is under active development.                                                                                 |
 
 ## Usage
 

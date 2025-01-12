@@ -30,9 +30,16 @@ use FFI;
  *
  * Methods for Linux:
  * -----------------
- * Library: X11 (through xdotool or native bindings)
+ * Library: X11 (through native bindings)
  * @method int XWarpPointer(object $display, int $srcWindow, int $destWindow, int $srcX, int $srcY, int $srcWidth, int $srcHeight, int $destX, int $destY)
+ * @method int XQueryPointer(object $display, int $window, object $rootReturn, object $childReturn, object $rootX, object $rootY, object $winX, object $winY, object $mask)
  * @method int XFlush(object $display)
+ * @method object DefaultRootWindow(object $display)
+ * @method object XKeysymToKeycode(object $display, int $keysym)
+ * @method void XTestFakeKeyEvent(object $display, int $keycode, int $isPress, int $delay)
+ * @method object XOpenDisplay(?string $displayName)
+ * @method void XCloseDisplay(object $display)
+ * @method int XSendEvent(object $display, int $w, bool $propagate, int $event_mask, object $event_send) Sends an event to the specified window, returns 1 on success, 0 on failure.
  *
  * @mixin FFI
  */

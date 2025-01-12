@@ -4,7 +4,8 @@ namespace M4W\LibIO\Enums;
 
 enum OS
 {
-    case Linux;
+    case LinuxWayLand;
+    case LinuxX11;
     case Windows;
     case Mac;
     case Unknown;
@@ -13,7 +14,8 @@ enum OS
     {
         return match ($this) {
             self::Windows => 'Windows',
-            self::Linux => 'Linux',
+            self::LinuxX11 => 'Linux (X11)',
+            self::LinuxWayLand => 'Linux (Wayland)',
             self::Mac => 'Mac',
             self::Unknown => 'Unknown',
         };
