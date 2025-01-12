@@ -2,8 +2,9 @@
 
 ![PHP](https://img.shields.io/badge/PHP-^8.3-%23777BB4)
 
-Package for mouse and keyboard manipulation.
-On run can ask for systems permission! Its normal behavior, becouse access to keyboard state or mouse click can`t be secure operation!
+### Package for mouse and keyboard manipulation.
+
+#### On run can ask for systems permission! Its normal behavior, becouse access to keyboard state or mouse click can`t be secure operation!
 
 ## Abilities
 
