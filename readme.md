@@ -2,37 +2,54 @@
 
 ![PHP](https://img.shields.io/badge/PHP-^8.3-%23777BB4)
 
-### Package for mouse and keyboard manipulation.
+### A PHP package for mouse and keyboard manipulation using FFI.
 
-#### On run can ask for systems permission! Its normal behavior, becouse access to keyboard state or mouse click can`t be secure operation!
+> ⚠️ On first run, the system may request permission to control the keyboard or mouse. This is normal behavior, as these operations require special access for security reasons.
 
-## Reqirement
+## Requirements
 
-* PHP 8.3
-* PHP FFI extension (usually installed by default)
+- **PHP 8.3** or higher
+- **PHP FFI extension** (usually enabled by default)
 
-## Tested on
+### Enabling PHP FFI Extension
 
-* MacOS Sequoia + PHP 8.3 & PHP 8.4
-* Windows 11 + PHP 8.4
+- **Windows**: Uncomment the following line in your `php.ini` file to enable FFI:
+  ```ini
+  extension=php_ffi.dll
+  ```
+- **macOS**: If PHP is installed via **Homebrew**, FFI support is enabled by default.
+- **Linux**: Check your `php.ini` file to ensure FFI is enabled.
 
-## Abilities
+## Supported Platforms
 
-### Mouse
-| OS      | Move    | Click   | GetPosition |
-|---------|---------|---------|-------------|
-| MacOS   | +       | +       | +           |
-| Linux   | in work | in work | in work     |
-| Windows | +       | +       | +           |
+| **OS**         | **PHP Version** |
+|-----------------|-----------------|
+| macOS Sequoia   | 8.3, 8.4        |
+| Windows 11      | 8.4             |
 
-### Keyboard
-| OS      | DownKey | UpKey   | PressKey | IsKeyPressed |
-|---------|---------|---------|----------|--------------|
-| MacOS   | +       | +       | +        | +            |
-| Linux   | in work | in work | in work  | in work      |
-| Windows | +       | +       | +        | +            |
+## Installation
 
-## HowTo
+```bash
+composer require mini4work/lib-io
+```
+
+## Features
+
+### Mouse Control
+| **OS**      | **Move** | **Click** | **GetPosition** |
+|-------------|----------|-----------|-----------------|
+| macOS       | ✅        | ✅         | ✅               |
+| Linux       | In progress | In progress | In progress   |
+| Windows     | ✅        | ✅         | ✅               |
+
+### Keyboard Control
+| **OS**      | **DownKey** | **UpKey** | **PressKey** | **IsKeyPressed** |
+|-------------|-------------|-----------|--------------|------------------|
+| macOS       | ✅           | ✅         | ✅            | ✅                |
+| Linux       | In progress  | In progress| In progress  | In progress      |
+| Windows     | ✅           | ✅         | ✅            | ✅                |
+
+## Usage
 
 ### Mouse
 
@@ -50,7 +67,7 @@ $mouse->click(MouseButton::Left, 100, 200);
 $mouse->click(MouseButton::Right, 200, 200);
 
 $position = $mouse->getPosition();
-echo json_encode($position) // {"x":768.359375,"y":756.7109375}
+echo json_encode($position); // {"x":768.359375,"y":756.7109375}
 ```
 
 ### Keyboard
@@ -85,7 +102,7 @@ while (true) {
         $isPressed = $keyboard->isKeyPressed($keyCode);
         if ($isPressedState[$keyCode->name] !== $isPressed) {
             $isPressedState[$keyCode->name] = $isPressed;
-            echo ($isPressedState[$keyCode->name]?'Pressed key '.$keyCode->name:'Released key '.$keyCode->name).PHP_EOL;
+            echo ($isPressedState[$keyCode->name] ? 'Pressed key ' . $keyCode->name : 'Released key ' . $keyCode->name) . PHP_EOL;
         }
     }
     usleep(10000);
@@ -93,4 +110,4 @@ while (true) {
 ```
 
 ## License
-Mini4Work is distributed by The [MIT license](https://opensource.org/licenses/MIT).
+Mini4Work is distributed under [The MIT license](https://opensource.org/licenses/MIT).
