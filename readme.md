@@ -11,6 +11,11 @@
 * PHP 8.3
 * PHP FFI extension (usually installed by default)
 
+## Tested on
+
+* MacOS Sequoia + PHP 8.3 & PHP 8.4
+* Windows 11 + PHP 8.4
+
 ## Abilities
 
 ### Mouse
@@ -18,14 +23,14 @@
 |---------|---------|---------|-------------|
 | MacOS   | +       | +       | +           |
 | Linux   | in work | in work | in work     |
-| Windows | in work | in work | in work     |
+| Windows | +       | +       | +           |
 
 ### Keyboard
 | OS      | DownKey | UpKey   | PressKey | IsKeyPressed |
 |---------|---------|---------|----------|--------------|
 | MacOS   | +       | +       | +        | +            |
 | Linux   | in work | in work | in work  | in work      |
-| Windows | in work | in work | in work  | in work      |
+| Windows | +       | +       | +        | +            |
 
 ## HowTo
 
@@ -83,6 +88,7 @@ while (true) {
             echo ($isPressedState[$keyCode->name]?'Pressed key '.$keyCode->name:'Released key '.$keyCode->name).PHP_EOL;
         }
     }
+    usleep(10000);
 }
 ```
 

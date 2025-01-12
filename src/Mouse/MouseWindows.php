@@ -16,11 +16,10 @@ class MouseWindows implements MouseInterface
     {
         $this->ffi = FFI::cdef("
             typedef unsigned int DWORD;
-            typedef unsigned short WORD;
-            typedef unsigned long ULONG_PTR;
             typedef int LONG;
             typedef unsigned int UINT;
-
+            typedef unsigned long long ULONG_PTR; // 64 bit!!
+        
             typedef struct {
                 LONG dx;
                 LONG dy;
@@ -29,19 +28,19 @@ class MouseWindows implements MouseInterface
                 DWORD time;
                 ULONG_PTR dwExtraInfo;
             } MOUSEINPUT;
-
+        
             typedef struct {
                 DWORD type;
                 union {
                     MOUSEINPUT mi;
                 };
             } INPUT;
-
+        
             typedef struct {
                 LONG x;
                 LONG y;
             } POINT;
-
+        
             UINT SendInput(UINT nInputs, INPUT* pInputs, int cbSize);
             int GetCursorPos(POINT* lpPoint);
             int SetCursorPos(int X, int Y);
@@ -60,8 +59,11 @@ class MouseWindows implements MouseInterface
             $y = $coords['y'];
         }
 
-        $scaledX = (int) (($x / $this->getScreenWidth()) * 65535);
-        $scaledY = (int) (($y / $this->getScreenHeight()) * 65535);
+        $scaledX = (int) (($x / $this->getScreenWidth()) * 65535) + 1;
+        $scaledY = (int) (($y / $this->getScreenHeight()) * 65535) + 1;
+
+        $scaledX = min(max($scaledX, 0), 65535);
+        $scaledY = min(max($scaledY, 0), 65535);
 
         // Створюємо масив із двох структур для натискання та відпускання кнопки миші
         $inputs = $this->ffi->new("INPUT[2]");
@@ -92,9 +94,11 @@ class MouseWindows implements MouseInterface
         $inputs[1]->mi->time = 0;
         $inputs[1]->mi->dwExtraInfo = 0;
 
+        $inputs[0]->mi->dwFlags |= 0x0001; // MOUSEEVENTF_MOVE
+        $inputs[1]->mi->dwFlags |= 0x0001; // MOUSEEVENTF_MOVE
+
         // Викликаємо SendInput із масивом структур
         $result = $this->ffi->SendInput(2, $inputs, FFI::sizeof($inputs[0]));
-        FFI::free($inputs);
 
         if ($result === 0) {
             throw new Exception("Failed to send mouse input");
@@ -115,12 +119,10 @@ class MouseWindows implements MouseInterface
         $result = $this->ffi->GetCursorPos(FFI::addr($point));
 
         if ($result === 0) {
-            FFI::free($point);
             throw new Exception("Failed to get cursor position");
         }
 
         $position = ['x' => $point->x, 'y' => $point->y];
-        FFI::free($point);
 
         return $position;
     }
