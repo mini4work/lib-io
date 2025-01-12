@@ -2,16 +2,82 @@
 
 ![PHP](https://img.shields.io/badge/PHP-^8.3-%23777BB4)
 
-<img align="right" width="150" height="150" src="https://raw.githubusercontent.com/mini4work/core/47eba08f5b4495cb0162990b50024c948155337b/logo/Mini4WorkLogo.svg" alt="Mini4Work Logo" title="Logo">
+Package for mouse and keyboard manipulation.
 
-This repository contains the core functionality of the Mini4Work framework. It is designed to be a lightweight and
-flexible framework foundation, providing essential features such as dependency injection and a modular architecture.
+## Abilities
 
-Developers should use this package as a dependency in their projects. Typically, it is automatically included when
-installing the `mini4work/project` package.
+### Mouse
+| OS      | Move    | Click   | GetPosition |
+|---------|---------|---------|-------------|
+| MacOS   | +       | +       | +           |
+| Linux   | in work | in work | in work     |
+| Windows | in work | in work | in work     |
 
-## Contributing
-Mini4Work is designed to remain simple and lightweight. If you have any improvements or features to suggest for the core framework, feel free to submit a Pull Request.
+### Keyboard
+| OS      | DownKey | UpKey   | PressKey | IsKeyPressed |
+|---------|---------|---------|----------|--------------|
+| MacOS   | +       | +       | +        | +            |
+| Linux   | in work | in work | in work  | in work      |
+| Windows | in work | in work | in work  | in work      |
+
+## HowTo
+
+### Mouse
+
+Available methods:
+
+```php
+use M4W\LibIO\Enums\MouseButton;
+use M4W\LibIO\OSDetector;
+
+$mouse = OSDetector::getMouseInstance();
+
+$mouse->move(100, 200);
+
+$mouse->click(MouseButton::Left, 100, 200);
+$mouse->click(MouseButton::Right, 200, 200);
+
+$position = $mouse->getPosition();
+echo json_encode($position) // {"x":768.359375,"y":756.7109375}
+```
+
+### Keyboard
+
+Available methods:
+
+```php
+use M4W\LibIO\Enums\KeyCode;
+use M4W\LibIO\OSDetector;
+
+$keyboard = OSDetector::getKeyboardInstance();
+
+$keyboard->down(KeyCode::Space);
+$keyboard->up(KeyCode::Space);
+
+$keyboard->press(KeyCode::Backspace);
+
+$isF4Pressed = $keyboard->isKeyPressed(KeyCode::F4); // boolean
+```
+
+Pressed key loop:
+
+```php
+$isPressedState = [];
+
+while (true) {
+    foreach (KeyCode::cases() as $keyCode) {
+        if (!array_key_exists($keyCode->name, $isPressedState)) {
+            $isPressedState[$keyCode->name] = $keyboard->isKeyPressed($keyCode);
+        }
+
+        $isPressed = $keyboard->isKeyPressed($keyCode);
+        if ($isPressedState[$keyCode->name] !== $isPressed) {
+            $isPressedState[$keyCode->name] = $isPressed;
+            echo ($isPressedState[$keyCode->name]?'Pressed key '.$keyCode->name:'Released key '.$keyCode->name).PHP_EOL;
+        }
+    }
+}
+```
 
 ## License
 Mini4Work is distributed by The [MIT license](https://opensource.org/licenses/MIT).
