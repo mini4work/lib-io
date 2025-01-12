@@ -6,6 +6,11 @@
 
 #### On run can ask for systems permission! Its normal behavior, becouse access to keyboard state or mouse click can`t be secure operation!
 
+## Reqirement
+
+* PHP 8.3
+* PHP FFI extension (usually installed by default)
+
 ## Abilities
 
 ### Mouse
