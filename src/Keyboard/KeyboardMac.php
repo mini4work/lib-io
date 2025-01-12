@@ -2,6 +2,7 @@
 
 namespace M4W\LibIO\Keyboard;
 
+use Exception;
 use FFI;
 use M4W\LibIO\Enums\KeyCode;
 use M4W\LibIO\Interfaces\FFIInterface;
@@ -58,6 +59,7 @@ class KeyboardMac implements KeyboardInterface
      * @param bool $isDown True for key down, false for key up.
      * @return void
      * @throws RuntimeException If the event creation fails.
+     * @throws Exception
      */
     private function sendKeyEvent(KeyCode $key, bool $isDown): void
     {
@@ -65,9 +67,24 @@ class KeyboardMac implements KeyboardInterface
         $event = $this->ffi->CGEventCreateKeyboardEvent(null, $virtualKey, $isDown ? 1 : 0);
 
         if ($event === null) {
-            throw new RuntimeException("Failed to create keyboard event for key: {$key->name}");
+            throw new Exception("Failed to create keyboard event for key: {$key->name}");
         }
 
         $this->ffi->CGEventPost(0, $event);
+
+        // Check button press. Maximum time - 50ms
+        $startTime = microtime(true);
+        $intervalUs = 2500; // First polling - 2.5ms
+
+        while ((microtime(true) - $startTime) < 0.05) {
+            if ($this->isKeyPressed($key) === $isDown) {
+                return;
+            }
+
+            usleep($intervalUs);
+            $intervalUs = min($intervalUs * 2, 20000); // Increase interval
+        }
+
+        throw new Exception("Key status not changed: {$key->name}. Its can be system problem or event bus speed so low");
     }
 }
