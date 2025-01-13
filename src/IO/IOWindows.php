@@ -1,51 +1,77 @@
 <?php
 
-namespace M4W\LibIO\Mouse;
+namespace M4W\LibIO\IO;
 
 use Exception;
 use FFI;
+use M4W\LibIO\Enums\KeyCode;
 use M4W\LibIO\Enums\MouseButton;
 use M4W\LibIO\Interfaces\FFIInterface;
-use M4W\LibIO\Interfaces\MouseInterface;
+use M4W\LibIO\Interfaces\IOInterface;
 
-class MouseWindows implements MouseInterface
+class IOWindows implements IOInterface
 {
     private FFI|FFIInterface $ffi;
 
     public function __construct()
     {
-        $this->ffi = FFI::cdef("
-            typedef unsigned int DWORD;
-            typedef int LONG;
-            typedef unsigned int UINT;
-            typedef unsigned long long ULONG_PTR; // 64 bit!!
-        
-            typedef struct {
-                LONG dx;
-                LONG dy;
-                DWORD mouseData;
-                DWORD dwFlags;
-                DWORD time;
-                ULONG_PTR dwExtraInfo;
-            } MOUSEINPUT;
-        
-            typedef struct {
-                DWORD type;
-                union {
-                    MOUSEINPUT mi;
-                };
-            } INPUT;
-        
-            typedef struct {
-                LONG x;
-                LONG y;
-            } POINT;
-        
-            UINT SendInput(UINT nInputs, INPUT* pInputs, int cbSize);
-            int GetCursorPos(POINT* lpPoint);
-            int SetCursorPos(int X, int Y);
-            int GetSystemMetrics(int nIndex);
-        ", "user32.dll");
+        $this->ffi = FFI::cdef(
+            file_get_contents(realpath('src/') . '/CHeaders/user32.h'),
+            "user32.dll"
+        );
+    }
+
+    public function press(KeyCode $key): void
+    {
+        $this->down($key);
+        usleep(10000); // Sleep for 10 milliseconds to simulate a key press
+        $this->up($key);
+    }
+
+    /**
+     * @throws Exception
+     */
+    public function down(KeyCode $key): void
+    {
+        $keyCode = $key->getCode();
+
+        $input = $this->ffi->new("INPUT[1]");
+        $input[0]->type = 1; // INPUT_KEYBOARD
+        $input[0]->ki->wVk = $keyCode; // Set wVk to 0 when using scan code
+        $input[0]->ki->wScan = 0; // Use scan code instead
+        $input[0]->ki->dwFlags = 0x0000; // KEYEVENTF_SCANCODE
+
+        $result = $this->ffi->SendInput(1, FFI::addr($input[0]), FFI::sizeof($input[0]));
+        if ($result === 0) {
+            throw new Exception("Failed to send keyboard input (key down)");
+        }
+    }
+
+    /**
+     * @throws Exception
+     */
+    public function up(KeyCode $key): void
+    {
+        $keyCode = $key->getCode();
+
+        $input = $this->ffi->new("INPUT[1]");
+        $input[0]->type = 1; // INPUT_KEYBOARD
+        $input[0]->ki->wVk = $keyCode; // Set wVk to 0 when using scan code
+        $input[0]->ki->wScan = 0; // Use scan code instead
+        $input[0]->ki->dwFlags = 0x0002; // KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP
+
+        $result = $this->ffi->SendInput(1, FFI::addr($input[0]), FFI::sizeof($input[0]));
+        if ($result === 0) {
+            throw new Exception("Failed to send keyboard input (key up)");
+        }
+    }
+
+    public function isKeyPressed(KeyCode $key): bool
+    {
+        $keyCode = $key->getCode();
+
+        $state = $this->ffi->GetAsyncKeyState($keyCode);
+        return ($state & 0x8000) !== 0; // Check if the most significant bit is set
     }
 
     /**
@@ -59,16 +85,14 @@ class MouseWindows implements MouseInterface
             $y = $coords['y'];
         }
 
-        $scaledX = (int) (($x / $this->getScreenWidth()) * 65535) + 1;
-        $scaledY = (int) (($y / $this->getScreenHeight()) * 65535) + 1;
+        $scaledX = (int)(($x / $this->getScreenWidth()) * 65535) + 1;
+        $scaledY = (int)(($y / $this->getScreenHeight()) * 65535) + 1;
 
         $scaledX = min(max($scaledX, 0), 65535);
         $scaledY = min(max($scaledY, 0), 65535);
 
-        // Створюємо масив із двох структур для натискання та відпускання кнопки миші
         $inputs = $this->ffi->new("INPUT[2]");
 
-        // Налаштовуємо першу структуру — натискання кнопки миші
         $inputs[0]->type = 0; // INPUT_MOUSE
         $inputs[0]->mi->dx = $scaledX;
         $inputs[0]->mi->dy = $scaledY;
@@ -81,7 +105,6 @@ class MouseWindows implements MouseInterface
         $inputs[0]->mi->time = 0;
         $inputs[0]->mi->dwExtraInfo = 0;
 
-        // Налаштовуємо другу структуру — відпускання кнопки миші
         $inputs[1]->type = 0; // INPUT_MOUSE
         $inputs[1]->mi->dx = $scaledX;
         $inputs[1]->mi->dy = $scaledY;
@@ -97,7 +120,6 @@ class MouseWindows implements MouseInterface
         $inputs[0]->mi->dwFlags |= 0x0001; // MOUSEEVENTF_MOVE
         $inputs[1]->mi->dwFlags |= 0x0001; // MOUSEEVENTF_MOVE
 
-        // Викликаємо SendInput із масивом структур
         $result = $this->ffi->SendInput(2, $inputs, FFI::sizeof($inputs[0]));
 
         if ($result === 0) {
@@ -122,18 +144,16 @@ class MouseWindows implements MouseInterface
             throw new Exception("Failed to get cursor position");
         }
 
-        $position = ['x' => $point->x, 'y' => $point->y];
-
-        return $position;
+        return ['x' => $point->x, 'y' => $point->y];
     }
 
     private function getScreenWidth(): int
     {
-        return $this->ffi->GetSystemMetrics(0); // 0: SM_CXSCREEN (ширина основного екрану)
+        return $this->ffi->GetSystemMetrics(0); // 0: SM_CXSCREEN
     }
 
     private function getScreenHeight(): int
     {
-        return $this->ffi->GetSystemMetrics(1); // 1: SM_CYSCREEN (висота основного екрану)
+        return $this->ffi->GetSystemMetrics(1); // 1: SM_CYSCREEN
     }
 }

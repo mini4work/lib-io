@@ -18,6 +18,8 @@ use FFI;
  * @method int CGEventSourceKeyState(?object $source, int $keyCode)
  * @method int CGGetActiveDisplayList(int $maxDisplays, object $activeDisplays, object $displayCount)
  * @method void CGDisplayBounds(int $display, object $bounds)
+ * @method object CGEventCreate(int $source)
+ * @method object CGEventGetLocation(object $event)
  *
  * Methods for Windows:
  * -------------------

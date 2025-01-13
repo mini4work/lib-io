@@ -4,16 +4,9 @@ namespace M4W\LibIO;
 
 use Exception;
 use M4W\LibIO\Enums\OS;
-use M4W\LibIO\Interfaces\KeyboardInterface;
-use M4W\LibIO\Interfaces\MouseInterface;
-use M4W\LibIO\Keyboard\KeyboardLinuxWayLand;
-use M4W\LibIO\Keyboard\KeyboardLinuxX11;
-use M4W\LibIO\Keyboard\KeyboardMac;
-use M4W\LibIO\Keyboard\KeyboardWindows;
-use M4W\LibIO\Mouse\MouseLinuxWayLand;
-use M4W\LibIO\Mouse\MouseLinuxX11;
-use M4W\LibIO\Mouse\MouseMac;
-use M4W\LibIO\Mouse\MouseWindows;
+use M4W\LibIO\Interfaces\IOInterface;
+use M4W\LibIO\IO\IOMac;
+use M4W\LibIO\IO\IOWindows;
 
 class OSDetector
 {
@@ -53,27 +46,11 @@ class OSDetector
     /**
      * @throws Exception
      */
-    public static function getMouseInstance(): MouseInterface
+    public static function getIOInstance(): IOInterface
     {
         return match (self::detect()) {
-            OS::Mac => new MouseMac(),
-            OS::Windows => new MouseWindows(),
-            OS::LinuxX11 => new MouseLinuxX11(),
-            OS::LinuxWayLand => new MouseLinuxWayLand(),
-            default => throw new Exception("No realization for your system"),
-        };
-    }
-
-    /**
-     * @throws Exception
-     */
-    public static function getKeyboardInstance(): KeyboardInterface
-    {
-        return match (self::detect()) {
-            OS::Mac => new KeyboardMac(),
-            OS::Windows => new KeyboardWindows(),
-            OS::LinuxX11 => new KeyboardLinuxX11(),
-            OS::LinuxWayLand => new KeyboardLinuxWayLand(),
+            OS::Mac => new IOMac(),
+            OS::Windows => new IOWindows(),
             default => throw new Exception("No realization for your system"),
         };
     }
