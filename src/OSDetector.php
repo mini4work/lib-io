@@ -12,7 +12,6 @@ class OSDetector
 {
     /**
      * @return OS
-     * @throws Exception
      */
     public static function detect(): OS
     {
@@ -30,17 +29,14 @@ class OSDetector
      * Detect the graphics engine on Linux.
      *
      * @return OS The detected Linux graphics engine (LinuxX11 or LinuxWayLand).
-     * @throws Exception
      */
     private static function detectLinuxGraphicsEngine(): OS
     {
         if (getenv('WAYLAND_DISPLAY')) {
             return OS::LinuxWayLand;
-        } elseif (getenv('DISPLAY')) {
-            return OS::LinuxX11;
-        } else {
-            throw new Exception("No graphical session detected on Linux");
         }
+
+        return OS::LinuxX11;
     }
 
     /**

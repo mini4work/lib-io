@@ -4,6 +4,7 @@ namespace M4W\LibIO\IO;
 
 use Exception;
 use FFI;
+use M4W\LibIO\Entity\Vector2;
 use M4W\LibIO\Enums\KeyCode;
 use M4W\LibIO\Enums\MouseButton;
 use M4W\LibIO\Interfaces\FFIInterface;
@@ -24,7 +25,7 @@ class IOMac implements IOInterface
     /**
      * @throws Exception
      */
-    public function press(KeyCode $key): void
+    public function press(KeyCode|MouseButton $key): void
     {
         $this->down($key);
         usleep(10000); // 10ms
@@ -34,7 +35,7 @@ class IOMac implements IOInterface
     /**
      * @throws Exception
      */
-    public function down(KeyCode $key): void
+    public function down(KeyCode|MouseButton $key): void
     {
         $this->sendKeyEvent($key, true);
     }
@@ -42,26 +43,26 @@ class IOMac implements IOInterface
     /**
      * @throws Exception
      */
-    public function up(KeyCode $key): void
+    public function up(KeyCode|MouseButton $key): void
     {
         $this->sendKeyEvent($key, false);
     }
 
-    public function isKeyPressed(KeyCode $key): bool
+    public function isKeyPressed(KeyCode|MouseButton $key): bool
     {
         $state = $this->ffi->CGEventSourceKeyState(null, $key->getCode());
         return $state === 1;
     }
 
     /**
+     * @param MouseButton $button
+     * @param Vector2|null $point
      * @throws Exception
      */
-    public function click(MouseButton $button = MouseButton::Left, ?int $x = null, ?int $y = null): void
+    public function click(MouseButton $button = MouseButton::Left, ?Vector2 $point = null): void
     {
-        if (is_null($x) || is_null($y)) {
-            $coords = $this->getPosition();
-            $x = $coords['x'];
-            $y = $coords['y'];
+        if (is_null($point)) {
+            $point = $this->getPosition();
         }
 
         $kCGEventMouseDown = match ($button) {
@@ -72,16 +73,16 @@ class IOMac implements IOInterface
 
         $kCGEventMouseUp = $kCGEventMouseDown + 1; // Up Event
 
-        $point = $this->ffi->new("CGPoint");
-        $point->x = floatval($x);
-        $point->y = floatval($y);
+        $cgPoint = $this->ffi->new("CGPoint");
+        $cgPoint->x = floatval($point->x);
+        $cgPoint->y = floatval($point->y);
 
-        $eventDown = $this->ffi->CGEventCreateMouseEvent(null, $kCGEventMouseDown, $point, $button->value);
+        $eventDown = $this->ffi->CGEventCreateMouseEvent(null, $kCGEventMouseDown, $cgPoint, $button->value);
         if ($eventDown === null) {
             throw new Exception("Failed to create mouse down event");
         }
 
-        $eventUp = $this->ffi->CGEventCreateMouseEvent(null, $kCGEventMouseUp, $point, $button->value);
+        $eventUp = $this->ffi->CGEventCreateMouseEvent(null, $kCGEventMouseUp, $cgPoint, $button->value);
         if ($eventUp === null) {
             throw new Exception("Failed to create mouse up event");
         }
@@ -90,11 +91,11 @@ class IOMac implements IOInterface
         $this->ffi->CGEventPost(0, $eventUp);
     }
 
-    public function move(int $x = 0, int $y = 0): void
+    public function move(Vector2 $point): void
     {
         $scaleFactor = $this->getMacScaleFactor();
-        $scaledX = (int)($x * $scaleFactor);
-        $scaledY = (int)($y * $scaleFactor);
+        $scaledX = (int)($point->x * $scaleFactor);
+        $scaledY = (int)($point->y * $scaleFactor);
 
         $point = $this->ffi->new("struct CGPoint");
         $point->x = $scaledX;
@@ -103,15 +104,12 @@ class IOMac implements IOInterface
         $this->ffi->CGDisplayMoveCursorToPoint(0, $point);
     }
 
-    public function getPosition(): array
+    public function getPosition(): Vector2
     {
         $event = $this->ffi->CGEventCreate(0);
         $position = $this->ffi->CGEventGetLocation($event);
 
-        return [
-            'x' => $position->x,
-            'y' => $position->y
-        ];
+        return new Vector2($position->x, $position->y);
     }
 
     private function getMacScaleFactor(): float
@@ -161,5 +159,17 @@ class IOMac implements IOInterface
         }
 
         throw new Exception("Key status not changed: {$key->name}. Its can be system problem or event bus speed so low");
+    }
+
+    public function drag(MouseButton $button, Vector2 $to, ?Vector2 $from = null): void
+    {
+        // TODO: Implement drag() method.
+    }
+
+    public function getScreenSize(): Vector2
+    {
+        // TODO: Implement getScreenSize() method.
+
+        return new Vector2(0, 0);
     }
 }

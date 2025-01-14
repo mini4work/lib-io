@@ -81,6 +81,10 @@ enum KeyCode
     case F11;
     case F12;
 
+    case LMB;
+    case RMB;
+    case MMB;
+
     public function getCode(): int
     {
         $os = OSDetector::detect();
@@ -88,7 +92,7 @@ enum KeyCode
         return match ($os) {
             OS::Mac => $this->getMacCode(),
             OS::Windows => $this->getWindowsCode(),
-            OS::Linux => $this->getLinuxCode(),
+            OS::LinuxX11 => $this->getLinuxCode(),
             default => throw new \RuntimeException("Unsupported operating system: " . $os->getName())
         };
     }
@@ -105,7 +109,7 @@ enum KeyCode
 
         $mapping = match ($os) {
             OS::Mac => self::macMapping(),
-            OS::Windows, OS::Linux => self::windowsLinuxMapping(),
+            OS::Windows, OS::LinuxX11 => self::windowsLinuxMapping(),
             default => []
         };
 
@@ -406,11 +410,11 @@ enum KeyCode
             self::Backslash => 0xDC,
             self::Semicolon => 0xBA,
             self::Apostrophe => 0xDE,
-            self::Comma => 0xBC,
-            self::Period => 0xBE,
-            self::Slash => 0xBF,
-            self::Equal => 0xBB,
-            self::Minus => 0xBD,
+            self::Comma => 0xBC, // ,
+            self::Period => 0xBE, // .
+            self::Slash => 0xBF, // /
+            self::Equal => 0xBB, // =
+            self::Minus => 0xBD, // -
             self::Space => 0x20,
             self::Enter => 0x0D,
             self::Shift => 0x10,
@@ -425,7 +429,7 @@ enum KeyCode
             self::RightArrow => 0x27,
             self::UpArrow => 0x26,
             self::DownArrow => 0x28,
-            self::Tilde => 0xC0,
+            self::Tilde => 0xC0, // `
             self::Escape => 0x1B,
             self::F1 => 0x70,
             self::F2 => 0x71,
@@ -439,6 +443,9 @@ enum KeyCode
             self::F10 => 0x79,
             self::F11 => 0x7A,
             self::F12 => 0x7B,
+            self::LMB => 0x01,
+            self::RMB => 0x02,
+            self::MMB => 0x04,
         };
     }
 

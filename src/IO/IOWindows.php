@@ -4,6 +4,11 @@ namespace M4W\LibIO\IO;
 
 use Exception;
 use FFI;
+use M4W\LibIO\Entity\MouseButtonState;
+use M4W\LibIO\Entity\Vector2;
+use M4W\LibIO\Entity\Windows\Interfaces\InputEventInterface;
+use M4W\LibIO\Entity\Windows\KeyboardInputEvent;
+use M4W\LibIO\Entity\Windows\MouseInputEvent;
 use M4W\LibIO\Enums\KeyCode;
 use M4W\LibIO\Enums\MouseButton;
 use M4W\LibIO\Interfaces\FFIInterface;
@@ -21,121 +26,116 @@ class IOWindows implements IOInterface
         );
     }
 
-    public function press(KeyCode $key): void
+    /**
+     * @throws Exception
+     */
+    public function press(KeyCode|MouseButton $key): void
     {
         $this->down($key);
-        usleep(10000); // Sleep for 10 milliseconds to simulate a key press
+        usleep(10_000);
         $this->up($key);
     }
 
     /**
      * @throws Exception
      */
-    public function down(KeyCode $key): void
+    public function down(KeyCode|MouseButton $key): void
     {
-        $keyCode = $key->getCode();
-
-        $input = $this->ffi->new("INPUT[1]");
-        $input[0]->type = 1; // INPUT_KEYBOARD
-        $input[0]->ki->wVk = $keyCode; // Set wVk to 0 when using scan code
-        $input[0]->ki->wScan = 0; // Use scan code instead
-        $input[0]->ki->dwFlags = 0x0000; // KEYEVENTF_SCANCODE
-
-        $result = $this->ffi->SendInput(1, FFI::addr($input[0]), FFI::sizeof($input[0]));
-        if ($result === 0) {
-            throw new Exception("Failed to send keyboard input (key down)");
-        }
+        $this->sendEvent([
+            match (get_class($key)) {
+                KeyCode::class => new KeyboardInputEvent($key, true),
+                MouseButton::class => $this->createMouseEvent(buttonState: $this->getPressedMouseButtons()->setButtonState($key, true)),
+            }
+        ]);
     }
 
     /**
      * @throws Exception
      */
-    public function up(KeyCode $key): void
+    public function up(KeyCode|MouseButton $key): void
     {
-        $keyCode = $key->getCode();
-
-        $input = $this->ffi->new("INPUT[1]");
-        $input[0]->type = 1; // INPUT_KEYBOARD
-        $input[0]->ki->wVk = $keyCode; // Set wVk to 0 when using scan code
-        $input[0]->ki->wScan = 0; // Use scan code instead
-        $input[0]->ki->dwFlags = 0x0002; // KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP
-
-        $result = $this->ffi->SendInput(1, FFI::addr($input[0]), FFI::sizeof($input[0]));
-        if ($result === 0) {
-            throw new Exception("Failed to send keyboard input (key up)");
-        }
+        $getMouseState = $this->getPressedMouseButtons();
+        $this->sendEvent([
+            match (get_class($key)) {
+                KeyCode::class => new KeyboardInputEvent($key, false),
+                MouseButton::class => $this->createMouseEvent(buttonState: $this->getPressedMouseButtons()->setButtonState($key, false)),
+            }
+        ]);
     }
 
-    public function isKeyPressed(KeyCode $key): bool
+    /**
+     * @throws Exception
+     */
+    public function isKeyPressed(KeyCode|MouseButton $key): bool
     {
-        $keyCode = $key->getCode();
-
+        if ($key instanceof MouseButton) {
+            $keyCode = match ($key) {
+                MouseButton::Left => 0x01,
+                MouseButton::Right => 0x02,
+                MouseButton::Middle => 0x04,
+            };
+        } elseif ($key instanceof KeyCode) {
+            $keyCode = $key->getCode();
+        } else {
+            throw new Exception("Unsupported key pressed");
+        }
         $state = $this->ffi->GetAsyncKeyState($keyCode);
-        return ($state & 0x8000) !== 0; // Check if the most significant bit is set
+        return ($state & 0x8000) !== 0;
     }
 
     /**
      * @throws Exception
      */
-    public function click(MouseButton $button = MouseButton::Left, ?int $x = null, ?int $y = null): void
+    public function click(?MouseButton $button = null, ?Vector2 $point = null): void
     {
-        if (is_null($x) || is_null($y)) {
-            $coords = $this->getPosition();
-            $x = $coords['x'];
-            $y = $coords['y'];
+        if (is_null($button)) {
+            $button = MouseButton::Left;
         }
 
-        $scaledX = (int)(($x / $this->getScreenWidth()) * 65535) + 1;
-        $scaledY = (int)(($y / $this->getScreenHeight()) * 65535) + 1;
+        $this->move($point ?? $this->getPosition());
+        $this->down($button);
 
-        $scaledX = min(max($scaledX, 0), 65535);
-        $scaledY = min(max($scaledY, 0), 65535);
-
-        $inputs = $this->ffi->new("INPUT[2]");
-
-        $inputs[0]->type = 0; // INPUT_MOUSE
-        $inputs[0]->mi->dx = $scaledX;
-        $inputs[0]->mi->dy = $scaledY;
-        $inputs[0]->mi->mouseData = 0;
-        $inputs[0]->mi->dwFlags = match ($button) {
-            MouseButton::Left => 0x0002 | 0x8000,   // MOUSEEVENTF_LEFTDOWN | MOUSEEVENTF_ABSOLUTE
-            MouseButton::Right => 0x0008 | 0x8000,  // MOUSEEVENTF_RIGHTDOWN | MOUSEEVENTF_ABSOLUTE
-            MouseButton::Middle => 0x0020 | 0x8000, // MOUSEEVENTF_MIDDLEDOWN | MOUSEEVENTF_ABSOLUTE
-        };
-        $inputs[0]->mi->time = 0;
-        $inputs[0]->mi->dwExtraInfo = 0;
-
-        $inputs[1]->type = 0; // INPUT_MOUSE
-        $inputs[1]->mi->dx = $scaledX;
-        $inputs[1]->mi->dy = $scaledY;
-        $inputs[1]->mi->mouseData = 0;
-        $inputs[1]->mi->dwFlags = match ($button) {
-            MouseButton::Left => 0x0004 | 0x8000,   // MOUSEEVENTF_LEFTUP | MOUSEEVENTF_ABSOLUTE
-            MouseButton::Right => 0x0010 | 0x8000,  // MOUSEEVENTF_RIGHTUP | MOUSEEVENTF_ABSOLUTE
-            MouseButton::Middle => 0x0040 | 0x8000, // MOUSEEVENTF_MIDDLEUP | MOUSEEVENTF_ABSOLUTE
-        };
-        $inputs[1]->mi->time = 0;
-        $inputs[1]->mi->dwExtraInfo = 0;
-
-        $inputs[0]->mi->dwFlags |= 0x0001; // MOUSEEVENTF_MOVE
-        $inputs[1]->mi->dwFlags |= 0x0001; // MOUSEEVENTF_MOVE
-
-        $result = $this->ffi->SendInput(2, $inputs, FFI::sizeof($inputs[0]));
-
-        if ($result === 0) {
-            throw new Exception("Failed to send mouse input");
-        }
-    }
-
-    public function move(int $x = 0, int $y = 0): void
-    {
-        $this->ffi->SetCursorPos($x, $y);
+        usleep(10_000);
+        $this->up($button);
+        usleep(10_000);
     }
 
     /**
      * @throws Exception
      */
-    public function getPosition(): array
+    public function move(Vector2 $point): void
+    {
+        $this->sendEvent([
+            new MouseInputEvent($point, $this->getPressedMouseButtons(), $this->getPressedMouseButtons())
+        ]);
+    }
+
+    /**
+     * @throws Exception
+     */
+    public function drag(MouseButton $button, Vector2 $to, ?Vector2 $from = null): void
+    {
+        $this->move($from);
+
+        $this->down($button);
+
+        // Smooth move
+        $pointArray = Vector2::smoothLine($from, $to);
+
+        foreach ($pointArray as $point) {
+            $this->move($point);
+        }
+        // Smooth move END
+
+        $this->move($to);
+
+        $this->up($button);
+    }
+
+    /**
+     * @throws Exception
+     */
+    public function getPosition(): Vector2
     {
         $point = $this->ffi->new("POINT");
         $result = $this->ffi->GetCursorPos(FFI::addr($point));
@@ -144,16 +144,62 @@ class IOWindows implements IOInterface
             throw new Exception("Failed to get cursor position");
         }
 
-        return ['x' => $point->x, 'y' => $point->y];
+        $point = new Vector2($point->x+1, $point->y+1);
+
+        return $point;
     }
 
-    private function getScreenWidth(): int
+    public function getScreenSize(): Vector2
     {
-        return $this->ffi->GetSystemMetrics(0); // 0: SM_CXSCREEN
+        return new Vector2(
+            $this->ffi->GetSystemMetrics(0),
+            $this->ffi->GetSystemMetrics(1)
+        );
     }
 
-    private function getScreenHeight(): int
+    /**
+     * @param InputEventInterface[] $events
+     * @return void
+     * @throws Exception
+     */
+    private function sendEvent(array $events): void
     {
-        return $this->ffi->GetSystemMetrics(1); // 1: SM_CYSCREEN
+        $inputs = $this->ffi->new("INPUT[" . count($events) . "]");
+
+        foreach ($events as $i => $event) {
+            $event->mapToCData($inputs[$i], $this->getScreenSize());
+        }
+
+        $result = $this->ffi->SendInput(count($events), FFI::addr($inputs[0]), FFI::sizeof($inputs[0]));
+        if ($result === 0) {
+            throw new Exception("Failed to send input events");
+        }
+        usleep(10_000);
+    }
+    public function getPressedMouseButtons(): MouseButtonState
+    {
+        $vkCodes = [
+            MouseButton::Left->value => 0x01,
+            MouseButton::Right->value => 0x02,
+            MouseButton::Middle->value => 0x04,
+        ];
+
+        $leftPressed = ($this->ffi->GetAsyncKeyState($vkCodes[MouseButton::Left->value]) & 0x8000) !== 0;
+        $rightPressed = ($this->ffi->GetAsyncKeyState($vkCodes[MouseButton::Right->value]) & 0x8000) !== 0;
+        $middlePressed = ($this->ffi->GetAsyncKeyState($vkCodes[MouseButton::Middle->value]) & 0x8000) !== 0;
+
+        return new MouseButtonState($leftPressed, $rightPressed, $middlePressed);
+    }
+
+    /**
+     * @throws Exception
+     */
+    private function createMouseEvent(?Vector2 $point = null, ?MouseButtonState $buttonState = null, ?MouseButtonState $currentState = null): MouseInputEvent
+    {
+        return new MouseInputEvent(
+            $point ?? $this->getPosition(),
+                $buttonState ?? $this->getPressedMouseButtons(),
+                $currentState ?? $this->getPressedMouseButtons()
+        );
     }
 }
